@@ -1,19 +1,34 @@
-# README
+# 淮北师范大学学生助手
 
-## About
+一款为淮北师范大学同学打造的桌面小工具，帮你快速查询常用校园信息。
 
-This is the official Wails Vue-TS template.
+## 功能
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+- **成绩查询** — 登录教务系统，按学期查看各科成绩和 GPA
+- **课表查询** — 查看每学期的课程安排
+- **校园新闻** — 浏览学校最新资讯
+- **第二课堂成绩** — 查看五育模块学时统计（思想政治、专业技能、体育健身、文化艺术、志愿服务）
 
-## Live Development
+## 使用方法
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+1. 下载并运行程序
+2. 前往侧边栏的「设置」页面，配置你的账号密码
+3. 教务系统和校园门户是**两套独立账号**，需要分别配置
+4. 配置完成后，点击对应功能即可自动登录并查询
+## 技术栈
 
-## Building
+- **前端**：Vue 3 + TypeScript + Ant Design Vue
+- **后端**：Go + Wails v2
 
-To build a redistributable, production mode package, use `wails build`.
+## 开发
+
+```bash
+# 安装前端依赖
+cd frontend && npm install
+
+# 开发模式（热重载）
+wails dev
+
+# 构建生产版本
+wails build
+```
