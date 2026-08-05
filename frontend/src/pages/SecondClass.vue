@@ -26,7 +26,7 @@
     </a-alert>
 
     <div v-if="scores.length > 0" class="score-cards">
-      <a-card v-for="item in scores" :key="item.userCode" :title="item.userName || '我的成绩'" style="margin-bottom: 16px">
+      <a-card v-for="item in scores" :key="item.userCode" title="我的成绩" style="margin-bottom: 16px">
         <a-descriptions :column="1" bordered size="small">
           <a-descriptions-item label="思想政治与品德">{{ item.sxylyagrx?.toFixed(2) ?? '0' }}</a-descriptions-item>
           <a-descriptions-item label="专业技能与创新创业">{{ item.xskjycxcy?.toFixed(2) ?? '0' }}</a-descriptions-item>
