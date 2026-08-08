@@ -84,15 +84,15 @@ const selectedNews = ref<NewsItem | null>(null)
 const activeCategory = ref('consulting')
 
 const activeColumns = computed(() => {
-  const cols = [
+  const cols: any[] = [
     { title: '标题', dataIndex: 'title', ellipsis: true },
   ]
   if (activeCategory.value === 'consulting') {
-    cols.push({ title: '来源', dataIndex: 'createBy', width: 160, align: 'center' as const })
+    cols.push({ title: '来源', dataIndex: 'createBy', width: 160, align: 'center' })
   }
   cols.push(
-    { title: '发布时间', dataIndex: 'createTime', width: 180, align: 'center' as const },
-    { title: '浏览', dataIndex: 'look', width: 80, align: 'center' as const, sorter: (a: NewsItem, b: NewsItem) => a.look - b.look },
+    { title: '发布时间', dataIndex: 'createTime', width: 180, align: 'center' },
+    { title: '浏览', dataIndex: 'look', width: 80, align: 'center', sorter: (a: NewsItem, b: NewsItem) => a.look - b.look },
   )
   return cols
 })
