@@ -19,8 +19,15 @@
       <template #message>{{ loginError }}</template>
     </a-alert>
 
+    <a-tabs v-model:activeKey="activeCategory" @change="onTabChange">
+      <a-tab-pane key="consulting" tab="新闻咨询" />
+      <a-tab-pane key="school" tab="学校新闻" />
+      <a-tab-pane key="notice" tab="通知公告" />
+      <a-tab-pane key="weekly" tab="周工作安排" />
+    </a-tabs>
+
     <a-table
-      :columns="columns"
+      :columns="activeColumns"
       :data-source="newsItems"
       :loading="loading"
       row-key="id"
@@ -40,8 +47,10 @@
       width="800px"
     >
       <div class="news-meta" v-if="selectedNews">
-        <span>来源：{{ selectedNews.createBy }}</span>
-        <a-divider type="vertical" />
+        <template v-if="selectedNews.createBy">
+          <span>来源：{{ selectedNews.createBy }}</span>
+          <a-divider type="vertical" />
+        </template>
         <span>{{ selectedNews.createTime }}</span>
         <a-divider type="vertical" />
         <span>浏览：{{ selectedNews.look }}</span>
@@ -56,11 +65,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
-import { getNews } from '../api/portal'
+import { getNewsByCategory } from '../api/portal'
 import { usePortalStore } from '../stores/portal'
 import type { NewsItem } from '../types'
 
@@ -73,13 +81,21 @@ const hasCredentials = ref(portalStore.hasSavedCredentials())
 const loginError = ref('')
 const modalVisible = ref(false)
 const selectedNews = ref<NewsItem | null>(null)
+const activeCategory = ref('consulting')
 
-const columns = [
-  { title: '标题', dataIndex: 'title', ellipsis: true },
-  { title: '来源', dataIndex: 'createBy', width: 160, align: 'center' as const },
-  { title: '发布时间', dataIndex: 'createTime', width: 180, align: 'center' as const },
-  { title: '浏览', dataIndex: 'look', width: 80, align: 'center' as const, sorter: (a: NewsItem, b: NewsItem) => a.look - b.look },
-]
+const activeColumns = computed(() => {
+  const cols = [
+    { title: '标题', dataIndex: 'title', ellipsis: true },
+  ]
+  if (activeCategory.value === 'consulting') {
+    cols.push({ title: '来源', dataIndex: 'createBy', width: 160, align: 'center' as const })
+  }
+  cols.push(
+    { title: '发布时间', dataIndex: 'createTime', width: 180, align: 'center' as const },
+    { title: '浏览', dataIndex: 'look', width: 80, align: 'center' as const, sorter: (a: NewsItem, b: NewsItem) => a.look - b.look },
+  )
+  return cols
+})
 
 async function fetchNews() {
   if (!hasCredentials.value) {
@@ -96,7 +112,7 @@ async function fetchNews() {
       return
     }
 
-    const result = await getNews(0, 50)
+    const result = await getNewsByCategory(activeCategory.value, 1, 50)
     if (result.success) {
       newsItems.value = result.data || []
     } else {
@@ -109,14 +125,24 @@ async function fetchNews() {
   }
 }
 
+function onTabChange() {
+  newsItems.value = []
+  fetchNews()
+}
+
 function viewDetail(item: NewsItem) {
   selectedNews.value = item
   modalVisible.value = true
 }
 
 function openInBrowser() {
-  if (selectedNews.value) {
-    BrowserOpenURL(`https://oshall.chnu.edu.cn/zhxy-new/campusInformation/detail?name=${selectedNews.value.id}`)
+  if (!selectedNews.value) return
+  const cat = activeCategory.value
+  const id = selectedNews.value.id
+  if (cat === 'notice') {
+    BrowserOpenURL(`https://oshall.chnu.edu.cn/zhxy-new/campusInformation/noticeDetail?id=${id}`)
+  } else {
+    BrowserOpenURL(`https://oshall.chnu.edu.cn/zhxy-new/campusInformation/detail?name=${id}`)
   }
 }
 

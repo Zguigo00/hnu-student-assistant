@@ -17,18 +17,45 @@ func NewNewsService(client *resty.Client) *NewsService {
 	return &NewsService{httpClient: client}
 }
 
-// GetNews 获取校园新闻。startIndex/endIndex 控制分页范围。
-func (s *NewsService) GetNews(startIndex, endIndex int) ([]NewsItem, int, error) {
-	resp, err := s.httpClient.R().
-		SetQueryParam("_t", fmt.Sprintf("%d", time.Now().UnixMilli())).
-		SetQueryParam("startIndex", fmt.Sprintf("%d", startIndex)).
-		SetQueryParam("endIndex", fmt.Sprintf("%d", endIndex)).
-		Get(NewsAPI)
-	if err != nil {
-		return nil, 0, fmt.Errorf("请求校园新闻失败: %w", err)
+// GetNewsByCategory 按分类获取校园新闻。
+// category: "consulting"(新闻咨询) / "school"(学校新闻) / "notice"(通知公告) / "weekly"(周工作安排)
+// page 从 1 开始，size 为每页条数。
+func (s *NewsService) GetNewsByCategory(category string, page, size int) ([]NewsItem, int, error) {
+	ts := fmt.Sprintf("%d", time.Now().UnixMilli())
+	req := s.httpClient.R().SetQueryParam("_t", ts)
+
+	var url string
+	switch category {
+	case "school":
+		url = ListNewsAPI
+		req.SetQueryParam("newsType", "1").
+			SetQueryParam("pageNo", fmt.Sprintf("%d", page)).
+			SetQueryParam("pageSize", fmt.Sprintf("%d", size))
+	case "weekly":
+		url = ListNewsAPI
+		req.SetQueryParam("newsType", "2").
+			SetQueryParam("pageNo", fmt.Sprintf("%d", page)).
+			SetQueryParam("pageSize", fmt.Sprintf("%d", size))
+	case "notice":
+		url = ListNoticeAPI
+		req.SetQueryParam("pageNo", fmt.Sprintf("%d", page)).
+			SetQueryParam("pageSize", fmt.Sprintf("%d", size))
+	default: // consulting
+		url = NewsAPI
+		start := (page - 1) * size
+		req.SetQueryParam("startIndex", fmt.Sprintf("%d", start)).
+			SetQueryParam("endIndex", fmt.Sprintf("%d", start+size))
 	}
 
-	// 先解析外层结构，result 可能是对象或数组
+	resp, err := req.Get(url)
+	if err != nil {
+		return nil, 0, fmt.Errorf("请求新闻失败: %w", err)
+	}
+
+	return parseNewsResponse(resp)
+}
+
+func parseNewsResponse(resp *resty.Response) ([]NewsItem, int, error) {
 	var raw struct {
 		Success bool            `json:"success"`
 		Result  json.RawMessage `json:"result"`
@@ -40,19 +67,31 @@ func (s *NewsService) GetNews(startIndex, endIndex int) ([]NewsItem, int, error)
 		return nil, 0, fmt.Errorf("新闻接口返回失败 (HTTP %d): %s", resp.StatusCode(), string(resp.Body()))
 	}
 
-	// 尝试 result.records 格式
+	// 策略1: result.records 格式
 	var withRecords struct {
 		Records []NewsItem `json:"records"`
+		Total   int        `json:"total"`
 	}
 	if err := json.Unmarshal(raw.Result, &withRecords); err == nil && len(withRecords.Records) > 0 {
-		return withRecords.Records, len(withRecords.Records), nil
+		total := withRecords.Total
+		if total == 0 {
+			total = len(withRecords.Records)
+		}
+		return withRecords.Records, total, nil
 	}
 
-	// 尝试 result 直接是数组的格式
+	// 策略2: result 直接是数组
 	var items []NewsItem
-	if err := json.Unmarshal(raw.Result, &items); err == nil {
+	if err := json.Unmarshal(raw.Result, &items); err == nil && len(items) > 0 {
 		return items, len(items), nil
 	}
 
-	return nil, 0, fmt.Errorf("无法解析新闻数据: %s", string(raw.Result))
+	return nil, 0, fmt.Errorf("无法解析新闻数据: %s", truncate(string(raw.Result), 500))
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
 }

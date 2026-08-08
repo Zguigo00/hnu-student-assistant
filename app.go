@@ -105,14 +105,14 @@ func (a *App) IsPortalLoggedIn() bool {
 	return a.portalClient != nil
 }
 
-// GetNews 获取校园新闻
-func (a *App) GetNews(startIndex, endIndex int) map[string]interface{} {
+// GetNewsByCategory 按分类获取校园新闻
+func (a *App) GetNewsByCategory(category string, page, size int) map[string]interface{} {
 	if a.portalClient == nil {
 		return errResp("请先登录校园门户")
 	}
 
 	newsSvc := portal.NewNewsService(a.portalClient)
-	items, count, err := newsSvc.GetNews(startIndex, endIndex)
+	items, count, err := newsSvc.GetNewsByCategory(category, page, size)
 	if err != nil {
 		return errResp(err.Error())
 	}
